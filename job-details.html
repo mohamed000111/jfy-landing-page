@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Details | Job For You</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <nav>
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <img src="https://i.ibb.co/9H1kC23h/JFY-logo.png" alt="Job For You Logo" style="height: 40px;">
+      </a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="jobs.html">Browse Jobs</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="job-content-container">
+    <div class="loading-spinner"></div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Job For You. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const slug = urlParams.get('slug');
+      
+      const container = document.getElementById('job-content-container');
+
+      if (!slug) {
+        container.innerHTML = '<div class="container" style="padding: 100px 0; text-align: center;"><h2>Job Not Found</h2><p>Invalid job link.</p><a href="jobs.html" class="btn btn-primary mt-4">Browse Jobs</a></div>';
+        return;
+      }
+
+      try {
+        const job = await fetchJobBySlug(slug);
+        
+        if (!job) {
+          container.innerHTML = '<div class="container" style="padding: 100px 0; text-align: center;"><h2>Job Not Found</h2><p>This position may have been closed.</p><a href="jobs.html" class="btn btn-primary mt-4">Browse Jobs</a></div>';
+          return;
+        }
+
+        document.title = `${job.title} | Job For You`;
+
+        const salaryStr = job.is_salary_confidential 
+          ? 'Confidential'
+          : (job.salary_min 
+              ? (job.salary_max 
+                  ? `${job.salary_currency} ${Number(job.salary_min).toLocaleString()} - ${Number(job.salary_max).toLocaleString()}`
+                  : `${job.salary_currency} ${Number(job.salary_min).toLocaleString()}+`)
+              : 'Competitive');
+
+        const isExternal = job.job_classification === 'external';
+        const applyUrl = isExternal ? job.external_link : `apply.html?job_id=${job.id}`;
+        const applyTarget = isExternal ? 'target="_blank"' : '';
+        const applyText = isExternal 
+          ? 'Apply on Company Site <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.9em; margin-left: 8px;"></i>' 
+          : 'Apply Now';
+        const applyTextSidebar = isExternal 
+          ? 'Apply on Company Site <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.9em; margin-left: 8px;"></i>' 
+          : 'Apply for this Job';
+
+        const parseMarkdown = (text) => marked.parse(text || '');
+
+        container.innerHTML = `
+          <div class="job-header">
+            <div class="container job-header-inner">
+              <div>
+                <a href="jobs.html" style="color: var(--text-muted); margin-bottom: 16px; display: inline-block;"><i class="fa-solid fa-arrow-left"></i> Back to Jobs</a>
+                <h1 style="margin-bottom: 8px;">${job.title}</h1>
+                <p style="color: var(--primary); font-weight: 600; font-size: 1.1rem; text-transform: uppercase;">${job.company_name || 'Unassigned'}</p>
+              </div>
+              <div style="display: flex; gap: 12px;">
+                <button onclick="window.shareJobUrl(window.location.href, document.title)" class="btn btn-outline" style="font-size: 1.2rem; padding: 16px 24px; display: inline-flex; align-items: center;" title="Share Job"><i class="fa-solid fa-share-nodes"></i></button>
+                <a href="${applyUrl}" ${applyTarget} class="btn btn-primary" style="font-size: 1.2rem; padding: 16px 32px; display: inline-flex; align-items: center;">${applyText}</a>
+              </div>
+            </div>
+          </div>
+          
+          <div class="container job-content">
+            <div class="job-body glass-card">
+              <h3>About the Role</h3>
+              <div>${parseMarkdown(job.description)}</div>
+              
+              ${job.responsibilities ? `
+                <h3>Responsibilities</h3>
+                <div>${parseMarkdown(job.responsibilities)}</div>
+              ` : ''}
+              
+              ${job.requirements ? `
+                <h3>Requirements</h3>
+                <div>${parseMarkdown(job.requirements)}</div>
+              ` : ''}
+              
+              ${job.benefits ? `
+                <h3>Benefits</h3>
+                <div>${parseMarkdown(job.benefits)}</div>
+              ` : ''}
+            </div>
+            
+            <div class="job-sidebar">
+              <div class="glass-card">
+                <div class="sidebar-item">
+                  <div class="sidebar-item-label">Location</div>
+                  <div class="sidebar-item-value"><i class="fa-solid fa-location-dot"></i> ${job.location || 'Remote'} ${job.is_remote ? '(Remote Allowed)' : ''}</div>
+                </div>
+                
+                <div class="sidebar-item">
+                  <div class="sidebar-item-label">Job Type</div>
+                  <div class="sidebar-item-value"><i class="fa-regular fa-clock"></i> ${CONFIG.employmentTypes[job.employment_type]}</div>
+                </div>
+                
+                <div class="sidebar-item">
+                  <div class="sidebar-item-label">Experience</div>
+                  <div class="sidebar-item-value"><i class="fa-solid fa-user-tie"></i> ${CONFIG.experienceLevels[job.experience_level] || 'Not Specified'}</div>
+                </div>
+                
+                <div class="sidebar-item">
+                  <div class="sidebar-item-label">Salary Range</div>
+                  <div class="sidebar-item-value"><i class="fa-solid fa-money-bill-wave"></i> ${salaryStr}</div>
+                </div>
+                
+                <div class="sidebar-item">
+                  <div class="sidebar-item-label">Date Posted</div>
+                  <div class="sidebar-item-value"><i class="fa-regular fa-calendar"></i> ${new Date(job.published_at || job.created_at).toLocaleDateString()}</div>
+                </div>
+                
+                <div style="margin-top: 32px;">
+                  <a href="${applyUrl}" ${applyTarget} class="btn btn-primary" style="width: 100%; display: inline-flex; align-items: center; justify-content: center;">${applyTextSidebar}</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        console.error("Error:", err);
+        container.innerHTML = '<div class="container" style="padding: 100px 0; text-align: center; color: var(--accent);"><h2>Error</h2><p>Unable to load job details. Please try again later.</p></div>';
+      }
+    });
+  </script>
+</body>
+</html>

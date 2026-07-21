@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apply | Job For You</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <div class="bg-glow"></div>
+
+  <nav>
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <img src="https://i.ibb.co/9H1kC23h/JFY-logo.png" alt="Job For You Logo" style="height: 40px;">
+      </a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="jobs.html">Browse Jobs</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container" style="padding: 100px 0 80px;">
+    <div id="job-header-info" style="text-align: center; margin-bottom: 40px;">
+      <!-- Job Info Injected -->
+      <div class="loading-spinner"></div>
+    </div>
+
+    <div class="glass-card apply-form" id="form-container" style="display: none;">
+      <h2 style="margin-bottom: 32px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">Application
+        Form</h2>
+
+      <form id="application-form">
+        <input type="hidden" id="job_id" name="job_id">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="first_name">First Name <span class="required">*</span></label>
+            <input type="text" id="first_name" name="first_name" required>
+          </div>
+          <div class="form-group">
+            <label for="last_name">Last Name <span class="required">*</span></label>
+            <input type="text" id="last_name" name="last_name" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">Email Address <span class="required">*</span></label>
+            <input type="email" id="email" name="email" required>
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" name="phone">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="linkedin">LinkedIn Profile</label>
+            <input type="text" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/...">
+          </div>
+          <div class="form-group">
+            <label for="portfolio">Portfolio / Personal Website</label>
+            <input type="text" id="portfolio" name="portfolio" placeholder="https://...">
+          </div>
+        </div>
+
+        <h3 style="margin: 32px 0 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Experience &
+          Salary</h3>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="experience_years">Years of Experience</label>
+            <input type="number" id="experience_years" name="experience_years" min="0" step="1">
+          </div>
+          <div class="form-group">
+            <label for="expected_salary">Expected Salary</label>
+            <input type="number" id="expected_salary" name="expected_salary" min="0">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="current_company">Current Company</label>
+            <input type="text" id="current_company" name="current_company">
+          </div>
+          <div class="form-group">
+            <label for="current_position">Current Position</label>
+            <input type="text" id="current_position" name="current_position">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="notice_period">Notice Period</label>
+          <input type="text" id="notice_period" name="notice_period" placeholder="e.g. 2 weeks, 1 month, immediately">
+        </div>
+
+        <h3 style="margin: 32px 0 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Documents
+        </h3>
+
+        <div class="form-group">
+          <label>Resume / CV <span class="required">*</span></label>
+          <div class="file-upload" id="cv-dropzone">
+            <i class="fa-solid fa-cloud-arrow-up file-upload-icon"></i>
+            <h4 id="cv-filename">Drag and drop your resume here</h4>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 8px;">Supported formats: PDF, DOCX (Max
+              10MB)</p>
+            <input type="file" id="cv_file" name="cv_file" accept=".pdf,.doc,.docx" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="cover_letter">Cover Letter (Optional)</label>
+          <textarea id="cover_letter" name="cover_letter"
+            placeholder="Why are you a great fit for this role?"></textarea>
+        </div>
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="consent" name="consent" required>
+          <label for="consent">I consent to the processing of my personal data for recruitment purposes in accordance
+            with the Privacy Policy. <span class="required">*</span></label>
+        </div>
+
+        <div style="margin-top: 40px;">
+          <button type="submit" id="submit-btn" class="btn btn-primary"
+            style="width: 100%; font-size: 1.2rem; padding: 16px;">
+            Submit Application
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Success Message (Hidden by default) -->
+    <div id="success-message" class="glass-card apply-form text-center" style="display: none; padding: 60px;">
+      <i class="fa-regular fa-circle-check" style="font-size: 5rem; color: var(--accent); margin-bottom: 24px;"></i>
+      <h2>Application Submitted!</h2>
+      <p style="color: var(--text-muted); font-size: 1.1rem; margin: 16px 0 32px;">Thank you for applying. We have
+        received your application and will review it shortly. You will hear back from our team via email.</p>
+      <a href="index.html" class="btn btn-outline">Return to Home</a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Job For You. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const jobId = urlParams.get('job_id');
+      const headerInfo = document.getElementById('job-header-info');
+
+      if (!jobId) {
+        headerInfo.innerHTML = '<h2>Error: No Job Selected</h2><a href="jobs.html" class="btn btn-primary mt-4">Browse Jobs</a>';
+        return;
+      }
+
+      try {
+        // Fetch Job to verify it exists and get title
+        const { data, error } = await db.from('v_published_jobs').select('id, title, company_name').eq('id', jobId).single();
+        if (error || !data) throw new Error("Job not found");
+
+        document.getElementById('job_id').value = data.id;
+
+        headerInfo.innerHTML = `
+          <h1 style="margin-bottom: 8px;">Apply for ${data.title}</h1>
+          <p style="color: var(--text-muted); font-size: 1.1rem;">${data.company_name || ''}</p>
+        `;
+
+        document.getElementById('form-container').style.display = 'block';
+      } catch (err) {
+        headerInfo.innerHTML = '<h2>Job Not Found or Closed</h2><a href="jobs.html" class="btn btn-primary mt-4">Browse Jobs</a>';
+        return;
+      }
+
+      // File Input Change Listener
+      const fileInput = document.getElementById('cv_file');
+      const filenameDisplay = document.getElementById('cv-filename');
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          const file = e.target.files[0];
+          if (file.size > CONFIG.maxCvSizeMB * 1024 * 1024) {
+            alert(`File is too large. Maximum size is ${CONFIG.maxCvSizeMB}MB.`);
+            fileInput.value = '';
+            filenameDisplay.textContent = 'Drag and drop your resume here';
+          } else {
+            filenameDisplay.textContent = file.name;
+            filenameDisplay.style.color = 'var(--accent)';
+          }
+        }
+      });
+
+      // Form Submit
+      const form = document.getElementById('application-form');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const btn = document.getElementById('submit-btn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Submitting...';
+        btn.disabled = true;
+
+        try {
+          // 1. Upload CV
+          const cvFile = document.getElementById('cv_file').files[0];
+          if (!cvFile) throw new Error("Please select a resume file.");
+
+          const cv_url = await uploadCV(cvFile);
+
+          // 2. Submit Application via RPC
+          const appData = {
+            job_id: document.getElementById('job_id').value,
+            first_name: document.getElementById('first_name').value,
+            last_name: document.getElementById('last_name').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            linkedin: document.getElementById('linkedin').value,
+            portfolio: document.getElementById('portfolio').value,
+            experience_years: document.getElementById('experience_years').value ? parseInt(document.getElementById('experience_years').value) : null,
+            expected_salary: document.getElementById('expected_salary').value ? parseFloat(document.getElementById('expected_salary').value) : null,
+            current_company: document.getElementById('current_company').value,
+            current_position: document.getElementById('current_position').value,
+            notice_period: document.getElementById('notice_period').value,
+            cover_letter: document.getElementById('cover_letter').value,
+            cv_url: cv_url,
+            consent: document.getElementById('consent').checked
+          };
+
+          await submitApplication(appData);
+
+          // 3. Show Success
+          document.getElementById('form-container').style.display = 'none';
+          document.getElementById('job-header-info').style.display = 'none';
+          document.getElementById('success-message').style.display = 'block';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        } catch (err) {
+          console.error("Submission Error:", err);
+          let msg = err.message || "An error occurred while submitting your application.";
+          if (err.code === '23505') msg = "You have already applied for this position with this email address.";
+          alert(msg);
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job For You | Find Your Dream Career</title>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <nav>
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <img src="https://i.ibb.co/9H1kC23h/JFY-logo.png" alt="Job For You Logo" style="height: 40px;">
+      </a>
+      <div class="nav-links">
+        <a href="index.html" class="active">Home</a>
+        <a href="jobs.html">Browse Jobs</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero container">
+      <h1>Discover Your Next Great Opportunity</h1>
+      <p>Join world-class teams and build the future with us. Browse our open positions and take the next step in your career journey.</p>
+      
+      <div class="search-container">
+        <form id="search-form" action="jobs.html" method="GET">
+          <div class="search-bar">
+            <input type="text" name="q" class="search-input" placeholder="Search by job title, skill, or keyword..." required>
+            <button type="submit" class="btn btn-primary">
+              <i class="fa-solid fa-magnifying-glass"></i> Search Jobs
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="stats-section">
+      <div class="container stats-grid" id="stats-container">
+        <!-- Injected via JS -->
+        <div class="stat-item"><div class="stat-value"><i class="fa-solid fa-circle-notch fa-spin"></i></div></div>
+      </div>
+    </section>
+
+    <section class="container" style="padding-bottom: 80px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
+        <h2>Recently Posted Jobs</h2>
+        <a href="jobs.html" class="btn btn-outline">View All Jobs <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+      
+      <div id="recent-jobs" class="job-grid">
+        <div class="loading-spinner"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Job For You. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Load Stats
+      try {
+        const stats = await fetchStats();
+        document.getElementById('stats-container').innerHTML = `
+          <div class="stat-item">
+            <div class="stat-value">${stats.openJobs}</div>
+            <div class="stat-label">Open Positions</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">${stats.companies}</div>
+            <div class="stat-label">Companies</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">100%</div>
+            <div class="stat-label">Remote Options</div>
+          </div>
+        `;
+      } catch (err) {
+        console.error("Error loading stats:", err);
+      }
+
+      // 2. Load Recent Jobs
+      try {
+        const { data: jobs } = await fetchJobs({}, 1, 6);
+        const container = document.getElementById('recent-jobs');
+        
+        if (jobs.length === 0) {
+          container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">No open positions at the moment. Check back soon!</p>';
+          return;
+        }
+
+        container.innerHTML = jobs.map(job => `
+          <div class="glass-card job-card">
+            <div class="job-card-header">
+              <h3 class="job-title">${job.title}</h3>
+            </div>
+            <div class="job-company">${job.company_name || 'Unassigned'}</div>
+            
+            <div class="job-meta mt-4">
+              <span class="badge"><i class="fa-solid fa-location-dot"></i> ${job.location || 'Remote'}</span>
+              <span class="badge"><i class="fa-regular fa-clock"></i> ${CONFIG.employmentTypes[job.employment_type]}</span>
+            </div>
+            
+            <p class="job-description">${job.description || 'Click to view full description...'}</p>
+            
+            <div class="job-footer">
+              <div class="job-salary">
+                ${job.is_salary_confidential ? 'Confidential' : (job.salary_min ? (job.salary_max ? `${job.salary_currency} ${Number(job.salary_min).toLocaleString()} - ${Number(job.salary_max).toLocaleString()}` : `${job.salary_currency} ${Number(job.salary_min).toLocaleString()}+`) : 'Competitive')}
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button onclick="window.shareJobUrl(window.location.origin + window.location.pathname.replace('index.html', '') + 'job-details.html?slug=${job.slug}', '${job.title}')" class="btn btn-outline btn-sm" style="padding: 6px 12px;" title="Share Job"><i class="fa-solid fa-share-nodes"></i></button>
+                <a href="job-details.html?slug=${job.slug}" class="btn btn-primary btn-sm">Details</a>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error("Error loading jobs:", err);
+        document.getElementById('recent-jobs').innerHTML = '<p class="text-center" style="grid-column: 1/-1; color: var(--accent);">Unable to load jobs right now.</p>';
+      }
+    });
+  </script>
+</body>
+</html>

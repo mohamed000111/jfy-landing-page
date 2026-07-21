@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse Jobs | Job For You</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <nav>
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <img src="https://i.ibb.co/9H1kC23h/JFY-logo.png" alt="Job For You Logo" style="height: 40px;">
+      </a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="jobs.html" class="active">Browse Jobs</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container" style="padding-top: 100px;">
+    <h2>Open Positions</h2>
+    
+    <form id="filter-form" class="filters-bar glass-card" style="padding: 24px; margin-bottom: 40px;">
+      <div style="flex: 1; min-width: 250px;">
+        <input type="text" id="filter-search" name="q" placeholder="Search keywords..." 
+               style="background: rgba(255,255,255,0.05); padding: 12px 16px; width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-md); color: #fff;">
+      </div>
+      
+      <select id="filter-company" class="filter-select">
+        <option value="">All Companies</option>
+      </select>
+      
+      <select id="filter-type" class="filter-select">
+        <option value="">Any Type</option>
+      </select>
+      
+      <button type="submit" class="btn btn-primary" style="padding: 12px 24px;">Filter</button>
+    </form>
+
+    <div id="jobs-container" class="job-grid">
+      <div class="loading-spinner"></div>
+    </div>
+    
+    <div id="pagination" style="display: flex; justify-content: center; gap: 16px; margin: 40px 0 80px;">
+      <!-- Pagination buttons injected here -->
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 Job For You. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script>
+    let currentPage = 1;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Setup Filters
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchParam = urlParams.get('q');
+      if (searchParam) document.getElementById('filter-search').value = searchParam;
+
+      // Populate Company Dropdown
+      const companiesList = await fetchCompanies();
+      const companySelect = document.getElementById('filter-company');
+      companiesList.forEach(d => {
+        companySelect.innerHTML += `<option value="${d.company_name}">${d.company_name}</option>`;
+      });
+
+      // Populate Type Dropdown
+      const typeSelect = document.getElementById('filter-type');
+      Object.entries(CONFIG.employmentTypes).forEach(([val, label]) => {
+        typeSelect.innerHTML += `<option value="${val}">${label}</option>`;
+      });
+
+      // 2. Load Data
+      await loadJobs();
+
+      // 3. Handle Form Submit
+      document.getElementById('filter-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        currentPage = 1;
+        loadJobs();
+      });
+    });
+
+    async function loadJobs() {
+      const container = document.getElementById('jobs-container');
+      container.innerHTML = '<div class="loading-spinner"></div>';
+      document.getElementById('pagination').innerHTML = '';
+
+      const search = document.getElementById('filter-search').value;
+      const company = document.getElementById('filter-company').value;
+      const type = document.getElementById('filter-type').value;
+
+      try {
+        const filters = {};
+        if (search) filters.search = search;
+        if (company) filters.company = company;
+        if (type) filters.employment_type = type;
+
+        const { data: jobs, count } = await fetchJobs(filters, currentPage, CONFIG.jobsPerPage);
+        
+        if (jobs.length === 0) {
+          container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">No jobs found matching your criteria.</p>';
+          return;
+        }
+
+        container.innerHTML = jobs.map(job => `
+          <div class="glass-card job-card">
+            <div class="job-card-header">
+              <h3 class="job-title">${job.title}</h3>
+            </div>
+            <div class="job-company">${job.company_name || 'Unassigned'}</div>
+            
+            <div class="job-meta mt-4">
+              <span class="badge"><i class="fa-solid fa-location-dot"></i> ${job.location || 'Remote'}</span>
+              <span class="badge"><i class="fa-regular fa-clock"></i> ${CONFIG.employmentTypes[job.employment_type]}</span>
+            </div>
+            
+            <p class="job-description">${job.description || ''}</p>
+            
+            <div class="job-footer">
+              <div class="job-salary">
+                ${job.is_salary_confidential ? 'Confidential' : (job.salary_min ? (job.salary_max ? `${job.salary_currency} ${Number(job.salary_min).toLocaleString()} - ${Number(job.salary_max).toLocaleString()}` : `${job.salary_currency} ${Number(job.salary_min).toLocaleString()}+`) : 'Competitive')}
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button onclick="window.shareJobUrl(window.location.origin + window.location.pathname.replace('jobs.html', '') + 'job-details.html?slug=${job.slug}', '${job.title}')" class="btn btn-outline btn-sm" style="padding: 6px 12px;" title="Share Job"><i class="fa-solid fa-share-nodes"></i></button>
+                <a href="job-details.html?slug=${job.slug}" class="btn btn-primary btn-sm">Details</a>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        // Pagination UI
+        const totalPages = Math.ceil(count / CONFIG.jobsPerPage);
+        if (totalPages > 1) {
+          let pagHTML = '';
+          if (currentPage > 1) pagHTML += `<button class="btn btn-outline" onclick="changePage(${currentPage-1})">Previous</button>`;
+          pagHTML += `<span style="display:flex; align-items:center; color: var(--text-muted);">Page ${currentPage} of ${totalPages}</span>`;
+          if (currentPage < totalPages) pagHTML += `<button class="btn btn-outline" onclick="changePage(${currentPage+1})">Next</button>`;
+          document.getElementById('pagination').innerHTML = pagHTML;
+        }
+
+      } catch (err) {
+        console.error("Error:", err);
+        container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--accent);">Error loading jobs.</p>';
+      }
+    }
+
+    function changePage(page) {
+      currentPage = page;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      loadJobs();
+    }
+  </script>
+</body>
+</html>
